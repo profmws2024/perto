@@ -28,7 +28,7 @@ if (in_array($action,$writes,true)) {
 if ($action==='session') out(['user'=>currentUser(),'csrf'=>$_SESSION['csrf']]);
 if ($action==='list' || $action==='admin-list') {
     if ($action==='admin-list') requireUser();
-    $sql='SELECT id,name,summary,description,category,city,neighborhood,address,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,image,status,featured,created_at FROM businesses';
+    $sql='SELECT id,name,summary,description,category,city,neighborhood,address,cep,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,image,status,featured,created_at FROM businesses';
     if ($action==='list') $sql.=" WHERE status='published'";
     $sql.=' ORDER BY created_at DESC,id DESC';
     $rows=db()->query($sql)->fetchAll(); foreach($rows as &$row) {$row['id']=(int)$row['id'];$row['featured']=(int)$row['featured'];} unset($row);
@@ -63,7 +63,7 @@ if ($action==='submit') {
     $values=businessData($d);
     if($values[8]==='') fail('Informe o WhatsApp comercial.');
     // Public submissions never choose their publication status, image, owner or placement.
-    $q=db()->prepare("INSERT INTO businesses (name,summary,description,category,city,neighborhood,address,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,status,consent_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',UTC_TIMESTAMP())");
+    $q=db()->prepare("INSERT INTO businesses (name,summary,description,category,city,neighborhood,address,cep,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,status,consent_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',UTC_TIMESTAMP())");
     $q->execute($values);out(['ok'=>true]);
 }
 $u=requireUser();
@@ -74,8 +74,8 @@ if ($action==='save') {
     $featured=($d['featured']??0)===1?1:0;
     $pdo=db();$pdo->beginTransaction();
     if($id){$q=$pdo->prepare('SELECT id FROM businesses WHERE id=? FOR UPDATE');$q->execute([$id]);if(!$q->fetch()){$pdo->rollBack();fail('Comércio não encontrado.',404);}}
-    if($id){$q=$pdo->prepare('UPDATE businesses SET name=?,summary=?,description=?,category=?,city=?,neighborhood=?,address=?,hours=?,whatsapp=?,website=?,instagram=?,facebook=?,tiktok=?,youtube=?,photos=?,status=?,image=?,featured=?,updated_at=UTC_TIMESTAMP() WHERE id=?');$q->execute([...$values,$status,$image,$featured,$id]);}
-    else{$q=$pdo->prepare('INSERT INTO businesses (name,summary,description,category,city,neighborhood,address,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,status,image,featured,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');$q->execute([...$values,$status,$image,$featured,$u['id']]);$id=(int)$pdo->lastInsertId();}
+    if($id){$q=$pdo->prepare('UPDATE businesses SET name=?,summary=?,description=?,category=?,city=?,neighborhood=?,address=?,cep=?,hours=?,whatsapp=?,website=?,instagram=?,facebook=?,tiktok=?,youtube=?,photos=?,status=?,image=?,featured=?,updated_at=UTC_TIMESTAMP() WHERE id=?');$q->execute([...$values,$status,$image,$featured,$id]);}
+    else{$q=$pdo->prepare('INSERT INTO businesses (name,summary,description,category,city,neighborhood,address,cep,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,status,image,featured,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');$q->execute([...$values,$status,$image,$featured,$u['id']]);$id=(int)$pdo->lastInsertId();}
     audit($u['id'],'save:'.$status,$id);$pdo->commit();out(['ok'=>true,'id'=>$id]);
 }
 if ($action==='delete') {

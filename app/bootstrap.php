@@ -141,8 +141,9 @@ function secureHeaders(): void
         . "script-src 'self'; "
         . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         . "font-src 'self' https://fonts.gstatic.com; "
-        . "img-src 'self' https:; "
+            . "img-src 'self' https: blob:; "
         . "connect-src 'self'; "
+        . "frame-src https://www.google.com https://maps.google.com; "
         . "frame-ancestors 'none'; "
         . "base-uri 'self'; "
         . "form-action 'self'; "
@@ -326,6 +327,12 @@ function businessData(array $data): array
 
     $neighborhood = textValue($data, 'neighborhood', 1, 100);
     $address = textValue($data, 'address', 5, 300);
+    $cep = textValue($data, 'cep', 8, 9);
+    if (!preg_match('/^[0-9]{5}-?[0-9]{3}$/D', $cep)) {
+        fail('Informe um CEP válido com 8 números.');
+    }
+    $cepDigits = preg_replace('/\D/', '', $cep);
+    $cep = substr($cepDigits, 0, 5) . '-' . substr($cepDigits, 5);
     $hours = textValue($data, 'hours', 1, 1000);
 
     $whatsapp = textValue($data, 'whatsapp', 0, 20);
@@ -381,8 +388,8 @@ function businessData(array $data): array
     } catch (JsonException $e) {
         fail('Fotos inválidas.');
     }
-    if (!is_array($photos) || count($photos) > 3) {
-        fail('Informe no máximo três fotos.');
+    if (!is_array($photos) || count($photos) > 10) {
+        fail('Informe no máximo dez fotos.');
     }
     foreach ($photos as $photo) {
         if (
@@ -404,6 +411,7 @@ function businessData(array $data): array
         $city,
         $neighborhood,
         $address,
+        $cep,
         $hours,
         $whatsapp,
         $website,
@@ -425,8 +433,8 @@ function uploadBusinessImages(mixed $files): array
     $tmpNames = is_array($files['tmp_name']) ? $files['tmp_name'] : [$files['tmp_name']];
     $errors = is_array($files['error']) ? $files['error'] : [$files['error']];
     $sizes = is_array($files['size']) ? $files['size'] : [$files['size']];
-    if (count($names) < 1 || count($names) > 3) {
-        fail('Selecione no máximo três imagens.');
+    if (count($names) < 1 || count($names) > 10) {
+        fail('Selecione no máximo dez imagens.');
     }
 
     $mimeExtensions = [
