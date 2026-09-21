@@ -7,7 +7,7 @@ Portal em HTML, CSS, JavaScript, PHP e MySQL, voltado ao Alto Tietê.
 - Página de cada comércio: descrição, endereço, horários, WhatsApp, site e acesso ao mapa.
 - Formulário público para solicitar divulgação; todos os cadastros entram em análise. O visitante não pode se aprovar nem selecionar destaque.
 - Painel com login, indicadores reais dos cadastros, fila de análise, criação/edição/exclusão, ocultação, publicação e destaques.
-- O painel usa administradores com acesso completo. Não há contas individuais para lojistas, cobranças, avaliações, upload de arquivos ou envio de e-mails nesta versão.
+- O painel usa administradores com acesso completo. Não há contas individuais para lojistas, cobranças, avaliações ou envio de e-mails nesta versão. Cadastros aceitam links HTTPS de Instagram, Facebook, TikTok, YouTube e até três fotos escolhidas do computador.
 - Categorias e cidades são fixas e podem ser alteradas em app.js e bootstrap.php. As imagens são escolhidas entre quatro fotos ilustrativas locais. Use fotos autorizadas antes da operação real.
 - A prévia Sites usa negócios fictícios e alterações temporárias em memória. O pacote PHP usa MySQL real; o banco começa vazio, sem contas ou contatos fictícios.
 
@@ -26,6 +26,8 @@ PHP 8.2+ (pdo_mysql, mbstring), MySQL 8.0+ ou MariaDB 10.6+, Apache/Nginx e HTTP
 ### Se você já instalou a versão anterior de notícias
 Faça backup do banco. Execute **somente** `migrations/002_comercios.sql` uma vez, usando a conta de migração. Não reimporte schema.sql no banco existente. A migração preserva usuários, notícias e logs antigos; cria a tabela businesses e adiciona business_id ao log. O novo código deixa de consultar notícias. Atualize o conteúdo de public e app juntos. Cadastre os comércios no painel: notícias não são convertidas automaticamente em estabelecimentos. Em caso de falha na atualização, restaure o backup e o código anterior.
 
+Se `businesses` já existe, não execute novamente a migração 002: faça backup e execute apenas `migrations/003_redes_fotos.sql` para adicionar os links sociais e as fotos.
+
 ### cPanel / hospedagem compartilhada
 Se não puder alterar DocumentRoot, copie o conteúdo de `public` para public_html (ou a subpasta do domínio). Coloque `app` fora de public_html e ajuste os require de index.php e api.php para o caminho privado. Configure variáveis pelo mecanismo recomendado pelo provedor e crie o administrador via Terminal/SSH ou processo privado do suporte. Não suba ZIP, SQL ou credenciais para a pasta pública.
 
@@ -39,7 +41,7 @@ Defina APP_ENV=local e APP_ORIGIN=http://localhost:8080, além das variáveis do
 - Cookies HttpOnly, Secure e SameSite=Strict; ID de sessão renovado; 30 minutos de inatividade e máximo de 8 horas.
 - password_hash/password_verify; troca de senha invalida outras sessões.
 - Até 10 tentativas de login por IP/conta por janela de 15 minutos; até 5 envios públicos por IP por janela de 15 minutos, com contagem transacional.
-- O servidor força status pending, sem destaque e sem foto em envios públicos, independentemente dos campos enviados.
+- O servidor força status pending, sem destaque e sem imagem de capa em envios públicos, independentemente dos campos enviados; redes sociais passam por validação HTTPS e fotos passam por validação de MIME, tamanho e quantidade.
 - Textos escapados e sem HTML arbitrário; WhatsApp validado; URLs de site somente HTTPS; imagem restrita à coleção local.
 - CSP, HSTS, nosniff, bloqueio de iframe e política de referência.
 - Registro de login, alterações, exclusões e troca de senha, sem armazenar senhas nos logs.

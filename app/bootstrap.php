@@ -141,7 +141,7 @@ function secureHeaders(): void
         . "script-src 'self'; "
         . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         . "font-src 'self' https://fonts.gstatic.com; "
-        . "img-src 'self' https://images.unsplash.com; "
+        . "img-src 'self' https:; "
         . "connect-src 'self'; "
         . "frame-ancestors 'none'; "
         . "base-uri 'self'; "
@@ -354,6 +354,47 @@ function businessData(array $data): array
         }
     }
 
+    $socials = [];
+    foreach (['instagram', 'facebook', 'tiktok', 'youtube'] as $social) {
+        $socials[$social] = textValue($data, $social, 0, 500);
+        if ($socials[$social] !== '') {
+            $parts = parse_url($socials[$social]);
+            if (
+                !filter_var($socials[$social], FILTER_VALIDATE_URL)
+                || !is_array($parts)
+                || ($parts['scheme'] ?? '') !== 'https'
+                || empty($parts['host'])
+                || isset($parts['user'])
+                || isset($parts['pass'])
+            ) {
+                fail('Informe links de redes sociais HTTPS válidos.');
+            }
+        }
+    }
+
+    $photos = $data['photos'] ?? '[]';
+    if (!is_string($photos)) {
+        fail('Fotos inválidas.');
+    }
+    try {
+        $photos = json_decode($photos, true, 4, JSON_THROW_ON_ERROR);
+    } catch (JsonException $e) {
+        fail('Fotos inválidas.');
+    }
+    if (!is_array($photos) || count($photos) > 3) {
+        fail('Informe no máximo três fotos.');
+    }
+    foreach ($photos as $photo) {
+        if (
+            !is_string($photo)
+            || mb_strlen($photo, 'UTF-8') > 500
+            || (!preg_match('/^uploads\/[a-z0-9-]+\.(?:jpg|png|webp|gif)$/i', $photo)
+                && (!filter_var($photo, FILTER_VALIDATE_URL) || !str_starts_with($photo, 'https://')))
+        ) {
+            fail('As fotos devem ser arquivos enviados ou links HTTPS válidos.');
+        }
+    }
+
     // A ordem corresponde aos parâmetros das consultas em api.php.
     return [
         $name,
@@ -366,7 +407,59 @@ function businessData(array $data): array
         $hours,
         $whatsapp,
         $website,
+        $socials['instagram'],
+        $socials['facebook'],
+        $socials['tiktok'],
+        $socials['youtube'],
+        json_encode(array_values($photos), JSON_THROW_ON_ERROR),
     ];
+}
+
+function uploadBusinessImages(mixed $files): array
+{
+    if (!is_array($files) || !isset($files['name'], $files['tmp_name'], $files['error'], $files['size'])) {
+        fail('Selecione pelo menos uma imagem.');
+    }
+
+    $names = is_array($files['name']) ? $files['name'] : [$files['name']];
+    $tmpNames = is_array($files['tmp_name']) ? $files['tmp_name'] : [$files['tmp_name']];
+    $errors = is_array($files['error']) ? $files['error'] : [$files['error']];
+    $sizes = is_array($files['size']) ? $files['size'] : [$files['size']];
+    if (count($names) < 1 || count($names) > 3) {
+        fail('Selecione no máximo três imagens.');
+    }
+
+    $mimeExtensions = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'image/gif' => 'gif',
+    ];
+    $directory = dirname(__DIR__) . '/public/uploads';
+    if (!is_dir($directory) && !mkdir($directory, 0750, true) && !is_dir($directory)) {
+        fail('Não foi possível preparar o armazenamento das imagens.', 500);
+    }
+
+    $paths = [];
+    foreach ($names as $index => $name) {
+        if (($errors[$index] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || (int) ($sizes[$index] ?? 0) > 5 * 1024 * 1024) {
+            fail('Cada imagem deve ter até 5 MB.');
+        }
+        $tmpName = $tmpNames[$index] ?? '';
+        if (!is_string($tmpName) || !is_uploaded_file($tmpName)) {
+            fail('Arquivo de imagem inválido.');
+        }
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmpName);
+        if (!isset($mimeExtensions[$mime]) || @getimagesize($tmpName) === false) {
+            fail('Use somente imagens JPG, PNG, WebP ou GIF.');
+        }
+        $filename = bin2hex(random_bytes(16)) . '.' . $mimeExtensions[$mime];
+        if (!move_uploaded_file($tmpName, $directory . '/' . $filename)) {
+            fail('Não foi possível salvar uma das imagens.', 500);
+        }
+        $paths[] = 'uploads/' . $filename;
+    }
+    return $paths;
 }
 
 // ==================================================

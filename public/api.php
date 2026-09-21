@@ -8,13 +8,18 @@ set_exception_handler(function(Throwable $e): void { error_log('Perto API: '.$e-
 startSession();
 $action=$_GET['action']??'list';
 if (!is_string($action)) fail('Ação inválida.');
-$writes=['login','logout','save','delete','password','submit'];
+$writes=['login','logout','save','delete','password','submit','upload'];
 if (in_array($action,$writes,true)) {
     if ($_SERVER['REQUEST_METHOD']!=='POST') fail('Método não permitido.',405);
-    if (!str_starts_with($_SERVER['CONTENT_TYPE']??'', 'application/json')) fail('Formato não permitido.',415);
     $origin=rtrim(getenv('APP_ORIGIN')?:'', '/');
     if (($_SERVER['HTTP_ORIGIN']??'') !== $origin) fail('Origem não permitida.',403);
     if (!hash_equals($_SESSION['csrf'],$_SERVER['HTTP_X_CSRF_TOKEN']??'')) fail('Atualize a página e tente novamente.',403);
+    if ($action==='upload') {
+        if (!str_starts_with($_SERVER['CONTENT_TYPE']??'', 'multipart/form-data')) fail('Formato não permitido.',415);
+        limitSubmission();
+        out(['photos'=>uploadBusinessImages($_FILES['images']??null)]);
+    }
+    if (!str_starts_with($_SERVER['CONTENT_TYPE']??'', 'application/json')) fail('Formato não permitido.',415);
     $raw=file_get_contents('php://input', false, null, 0, 150001);
     if (strlen($raw)>150000) fail('Conteúdo muito grande.',413);
     try {$d=json_decode($raw,true,32,JSON_THROW_ON_ERROR);} catch(JsonException $e) {fail('Dados inválidos.');}
@@ -23,7 +28,7 @@ if (in_array($action,$writes,true)) {
 if ($action==='session') out(['user'=>currentUser(),'csrf'=>$_SESSION['csrf']]);
 if ($action==='list' || $action==='admin-list') {
     if ($action==='admin-list') requireUser();
-    $sql='SELECT id,name,summary,description,category,city,neighborhood,address,hours,whatsapp,website,image,status,featured,created_at FROM businesses';
+    $sql='SELECT id,name,summary,description,category,city,neighborhood,address,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,image,status,featured,created_at FROM businesses';
     if ($action==='list') $sql.=" WHERE status='published'";
     $sql.=' ORDER BY created_at DESC,id DESC';
     $rows=db()->query($sql)->fetchAll(); foreach($rows as &$row) {$row['id']=(int)$row['id'];$row['featured']=(int)$row['featured'];} unset($row);
@@ -58,7 +63,7 @@ if ($action==='submit') {
     $values=businessData($d);
     if($values[8]==='') fail('Informe o WhatsApp comercial.');
     // Public submissions never choose their publication status, image, owner or placement.
-    $q=db()->prepare("INSERT INTO businesses (name,summary,description,category,city,neighborhood,address,hours,whatsapp,website,status,consent_at) VALUES (?,?,?,?,?,?,?,?,?,?,'pending',UTC_TIMESTAMP())");
+    $q=db()->prepare("INSERT INTO businesses (name,summary,description,category,city,neighborhood,address,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,status,consent_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',UTC_TIMESTAMP())");
     $q->execute($values);out(['ok'=>true]);
 }
 $u=requireUser();
@@ -69,8 +74,8 @@ if ($action==='save') {
     $featured=($d['featured']??0)===1?1:0;
     $pdo=db();$pdo->beginTransaction();
     if($id){$q=$pdo->prepare('SELECT id FROM businesses WHERE id=? FOR UPDATE');$q->execute([$id]);if(!$q->fetch()){$pdo->rollBack();fail('Comércio não encontrado.',404);}}
-    if($id){$q=$pdo->prepare('UPDATE businesses SET name=?,summary=?,description=?,category=?,city=?,neighborhood=?,address=?,hours=?,whatsapp=?,website=?,status=?,image=?,featured=?,updated_at=UTC_TIMESTAMP() WHERE id=?');$q->execute([...$values,$status,$image,$featured,$id]);}
-    else{$q=$pdo->prepare('INSERT INTO businesses (name,summary,description,category,city,neighborhood,address,hours,whatsapp,website,status,image,featured,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');$q->execute([...$values,$status,$image,$featured,$u['id']]);$id=(int)$pdo->lastInsertId();}
+    if($id){$q=$pdo->prepare('UPDATE businesses SET name=?,summary=?,description=?,category=?,city=?,neighborhood=?,address=?,hours=?,whatsapp=?,website=?,instagram=?,facebook=?,tiktok=?,youtube=?,photos=?,status=?,image=?,featured=?,updated_at=UTC_TIMESTAMP() WHERE id=?');$q->execute([...$values,$status,$image,$featured,$id]);}
+    else{$q=$pdo->prepare('INSERT INTO businesses (name,summary,description,category,city,neighborhood,address,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,status,image,featured,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');$q->execute([...$values,$status,$image,$featured,$u['id']]);$id=(int)$pdo->lastInsertId();}
     audit($u['id'],'save:'.$status,$id);$pdo->commit();out(['ok'=>true,'id'=>$id]);
 }
 if ($action==='delete') {
