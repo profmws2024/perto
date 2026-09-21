@@ -388,8 +388,8 @@ function businessData(array $data): array
     } catch (JsonException $e) {
         fail('Fotos inválidas.');
     }
-    if (!is_array($photos) || count($photos) > 10) {
-        fail('Informe no máximo dez fotos.');
+    if (!is_array($photos) || count($photos) > 5) {
+        fail('Informe no máximo cinco fotos.');
     }
     foreach ($photos as $photo) {
         if (
@@ -433,8 +433,8 @@ function uploadBusinessImages(mixed $files): array
     $tmpNames = is_array($files['tmp_name']) ? $files['tmp_name'] : [$files['tmp_name']];
     $errors = is_array($files['error']) ? $files['error'] : [$files['error']];
     $sizes = is_array($files['size']) ? $files['size'] : [$files['size']];
-    if (count($names) < 1 || count($names) > 10) {
-        fail('Selecione no máximo dez imagens.');
+    if (count($names) < 1 || count($names) > 5) {
+        fail('Selecione no máximo cinco imagens.');
     }
 
     $mimeExtensions = [

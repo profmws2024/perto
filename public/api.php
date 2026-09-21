@@ -16,7 +16,6 @@ if (in_array($action,$writes,true)) {
     if (!hash_equals($_SESSION['csrf'],$_SERVER['HTTP_X_CSRF_TOKEN']??'')) fail('Atualize a página e tente novamente.',403);
     if ($action==='upload') {
         if (!str_starts_with($_SERVER['CONTENT_TYPE']??'', 'multipart/form-data')) fail('Formato não permitido.',415);
-        limitSubmission();
         out(['photos'=>uploadBusinessImages($_FILES['images']??null)]);
     }
     if (!str_starts_with($_SERVER['CONTENT_TYPE']??'', 'application/json')) fail('Formato não permitido.',415);
@@ -58,7 +57,6 @@ if ($action==='login') {
 }
 if ($action==='logout') { $_SESSION=[];session_regenerate_id(true);$_SESSION['csrf']=bin2hex(random_bytes(32));out(['ok'=>true]); }
 if ($action==='submit') {
-    limitSubmission();
     if(($d['consent']??false)!==true) fail('Confirme sua autorização para divulgar o negócio.');
     $values=businessData($d);
     if($values[8]==='') fail('Informe o WhatsApp comercial.');
