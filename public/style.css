@@ -34,6 +34,14 @@
 .social-icon-list{display:flex;flex-wrap:wrap;gap:10px}.social-icon-link{--social-icon-background:#fff;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--social-icon-background);color:inherit;transition:background .15s,border-color .15s}.social-icon-link:hover{--social-icon-background:var(--soft);border-color:currentColor}.social-icon-link:focus-visible{outline:2px solid currentColor;outline-offset:3px}.social-icon-link svg{flex-shrink:0}
 
 /* Fit the whole uploaded image, regardless of its original proportions. */
+.photo-strip button{padding:0;border:2px solid transparent;border-radius:9px;background:transparent;overflow:hidden;flex-shrink:0}
+.photo-strip button.active{border-color:var(--red)}
+.photo-strip button:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.carousel-track img{transition:none}}
+.card-photo{width:100%;height:auto;aspect-ratio:16/9;background:var(--soft)}
+.card-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
+.card-photo>.business-placeholder{position:absolute;inset:0}
+.business-card:hover .card-photo img{transform:none}
 .detail-layout>article{min-width:0;width:100%}
 .detail-photo{width:100%;height:auto;aspect-ratio:16/9;background:var(--soft);overflow:hidden}
 .detail-photo>img,.detail-photo .carousel-track img{width:100%;height:100%;object-fit:contain;object-position:center}

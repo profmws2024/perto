@@ -1,4 +1,11 @@
 # Verificação e aceite
+
+## Adaptação para celulares e tablets
+- `public/responsive.css` reúne ajustes de navegação, formulários, painel, galeria e controles de toque em faixas de 1024, 750 e 480 pixels. As tabelas extensas têm rolagem dentro do próprio contêiner.
+- Confirmados: arquivo CSS entregue com HTTP 200, sintaxe PHP válida e os dois testes de regressão de desempenho aprovados.
+- Pendente: validação visual e interação em navegador, indisponível nesta sessão. Conferir início, busca, anúncio, cadastro, login, painel e edição em 320, 360, 390, 430, 768 e 1024 pixels, orientação horizontal, teclado virtual e zoom de 200%. Não considerar estes ajustes certificação de compatibilidade com todos os dispositivos.
+
+## Verificações anteriores
 - Sintaxe JavaScript e referências de assets verificadas.
 - Frontend: busca sem acentos, cidade/categoria, estados pendente/oculto, cadastro e aprovação, exclusão, escaping e navegação verificados em ambiente isolado.
 - Backend revisado e testado localmente com PHP/MySQL: 51 verificações de segurança em banco isolado e 2 testes de desempenho aprovados. Consulte SEGURANCA.md para escopo, limitações e pendências. Não houve auditoria independente nem validação visual em navegador nesta revisão.

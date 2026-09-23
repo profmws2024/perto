@@ -45,7 +45,40 @@ function setupPhotoManager(){const form=document.getElementById('business-editor
 function setupNewPhotoRemove(){document.querySelectorAll('#business-editor .new-photo-grid figure').forEach(figure=>{if(figure.querySelector('[data-remove-new-photo]'))return;const button=document.createElement('button');button.type='button';button.dataset.removeNewPhoto='';button.textContent='Remover';button.addEventListener('click',()=>{const input=document.querySelector('#business-editor input[name="images"]');if(!input)return;const figures=[...figure.parentElement.children];const removeIndex=figures.indexOf(figure);const transfer=new DataTransfer();[...input.files].forEach((file,index)=>{if(index!==removeIndex)transfer.items.add(file)});input.files=transfer.files;figure.remove()});figure.append(button)})}
 function setupPublicPhotoManager(){const form=document.getElementById('submit-business');if(!form||form.querySelector('.new-photo-grid'))return;const field=form.elements.images;if(!field)return;const preview=document.createElement('div');preview.className='new-photo-grid';field.closest('.field').before(preview);let selectedFiles=[];field.addEventListener('change',()=>{for(const file of field.files)if(!selectedFiles.some(old=>old.name===file.name&&old.size===file.size&&old.lastModified===file.lastModified))selectedFiles.push(file);if(selectedFiles.length>5){selectedFiles=selectedFiles.slice(0,5);toast('Você pode escolher até 5 imagens.')}const transfer=new DataTransfer();selectedFiles.forEach(file=>transfer.items.add(file));field.files=transfer.files;preview.innerHTML='';selectedFiles.forEach((file,index)=>{const figure=document.createElement('figure');figure.innerHTML=`<img src="${previewUrl(file)}" alt="Nova imagem ${index+1}"><figcaption>Nova imagem</figcaption>`;const button=document.createElement('button');button.type='button';button.textContent='Remover';button.addEventListener('click',()=>{selectedFiles.splice(index,1);const next=new DataTransfer();selectedFiles.forEach(item=>next.items.add(item));field.files=next.files;figure.remove()});figure.append(button);preview.append(figure)})})}
 function setupPublicPhotoText(){document.querySelectorAll('#submit-business p').forEach(p=>{const text=p.textContent.replace(/Escolha até três imagens/g,'Escolha até cinco imagens');if(p.textContent!==text)p.textContent=text})}
-function setupPhotoCarousel(){document.querySelectorAll('.detail-photo').forEach(container=>{if(container.dataset.carouselReady)return;const strip=container.parentElement.querySelector('.photo-strip');const images=[...container.querySelectorAll('img'),...(strip?[...strip.querySelectorAll('img')]:[])];const sources=images.map(image=>image.src).filter((src,index,list)=>list.indexOf(src)===index);if(sources.length<2)return;container.dataset.carouselReady='true';container.innerHTML=`<div class="carousel-track">${sources.map((src,index)=>`<img src="${esc(src)}" alt="Imagem ${index+1}" class="${index===0?'active':''}">`).join('')}</div><button type="button" class="carousel-arrow previous" data-carousel-direction="-1" aria-label="Imagem anterior">&#10094;</button><button type="button" class="carousel-arrow next" data-carousel-direction="1" aria-label="Próxima imagem">&#10095;</button><div class="carousel-dots">${sources.map((_,index)=>`<button type="button" class="${index===0?'active':''}" data-carousel-index="${index}" aria-label="Ver imagem ${index+1}"></button>`).join('')}</div>`;let current=0;const slides=[...container.querySelectorAll('.carousel-track img')];const dots=[...container.querySelectorAll('[data-carousel-index]')];const show=index=>{current=(index+sources.length)%sources.length;slides.forEach((slide,i)=>slide.classList.toggle('active',i===current));dots.forEach((dot,i)=>dot.classList.toggle('active',i===current))};carouselTimer=setInterval(()=>show(current+1),4000);container.addEventListener('click',event=>{const dot=event.target.closest('[data-carousel-index]');const arrow=event.target.closest('[data-carousel-direction]');if(dot)show(Number(dot.dataset.carouselIndex));if(arrow)show(current+Number(arrow.dataset.carouselDirection))});container.addEventListener('mouseenter',()=>clearInterval(carouselTimer),{once:false})})}
+function setupPhotoCarousel(){
+ document.querySelectorAll('.detail-photo').forEach(container=>{
+  if(container.dataset.carouselReady)return;
+  const strip=container.parentElement.querySelector('.photo-strip');
+  const images=[...container.querySelectorAll('img'),...(strip?[...strip.querySelectorAll('img')]:[])];
+  const sources=[...new Set(images.map(image=>image.src))];
+  if(sources.length<2)return;
+  container.dataset.carouselReady='true';
+  container.innerHTML=`<div class="carousel-track">${sources.map((src,index)=>`<img src="${esc(src)}" alt="Imagem ${index+1}" decoding="async" class="${index===0?'active':''}">`).join('')}</div><button type="button" class="carousel-arrow previous" data-carousel-direction="-1" aria-label="Imagem anterior">&#10094;</button><button type="button" class="carousel-arrow next" data-carousel-direction="1" aria-label="Próxima imagem">&#10095;</button><div class="carousel-dots">${sources.map((_,index)=>`<button type="button" data-carousel-index="${index}" aria-label="Ver imagem ${index+1}"></button>`).join('')}</div>`;
+  if(strip)strip.innerHTML=sources.map((src,index)=>`<button type="button" data-thumbnail-index="${index}" aria-label="Ver imagem ${index+1}"><img src="${esc(src)}" alt="" loading="lazy" decoding="async"></button>`).join('');
+  let current=0;
+  const slides=[...container.querySelectorAll('.carousel-track img')];
+  const dots=[...container.querySelectorAll('[data-carousel-index]')];
+  const thumbnails=strip?[...strip.querySelectorAll('[data-thumbnail-index]')]:[];
+  const show=index=>{
+   current=(index+sources.length)%sources.length;
+   slides.forEach((slide,i)=>{slide.classList.toggle('active',i===current);slide.setAttribute('aria-hidden',String(i!==current))});
+   for(const controls of [dots,thumbnails])controls.forEach((button,i)=>{button.classList.toggle('active',i===current);button.setAttribute('aria-current',String(i===current))});
+  };
+  const restart=()=>{
+   clearInterval(carouselTimer);carouselTimer=null;
+   carouselTimer=setInterval(()=>{if(!document.hidden)show(current+1)},4000);
+  };
+  container.addEventListener('click',event=>{
+   const dot=event.target.closest('[data-carousel-index]');
+   const arrow=event.target.closest('[data-carousel-direction]');
+   if(dot)show(Number(dot.dataset.carouselIndex));
+   if(arrow)show(current+Number(arrow.dataset.carouselDirection));
+   if(dot||arrow)restart();
+  });
+  strip?.addEventListener('click',event=>{const button=event.target.closest('[data-thumbnail-index]');if(button){show(Number(button.dataset.thumbnailIndex));restart()}});
+  show(0);restart();
+ });
+}
 function setupCepField(){document.querySelectorAll('form').forEach(form=>{const address=form.elements.address;if(!address||form.elements.cep)return;const business=businesses.find(item=>item.id===Number(form.dataset.id));const label=document.createElement('label');label.className='field';label.innerHTML='CEP<input name="cep" required maxlength="9" inputmode="numeric" placeholder="00000-000">';const input=label.querySelector('input');input.value=business?.cep||'';input.addEventListener('input',event=>{const digits=event.target.value.replace(/\D/g,'').slice(0,8);event.target.value=digits.length>5?`${digits.slice(0,5)}-${digits.slice(5)}`:digits});address.closest('.field').after(label)})}
 const banner=()=>DEMO?'<div class="demo-banner">Demonstração · estabelecimentos fictícios · alterações temporárias <a href="portal-php-mysql.zip" download>Baixar projeto PHP + MySQL ↗</a></div>':'';
 const brand=()=>'<span class="local-brand">perto<span>.</span></span>';
