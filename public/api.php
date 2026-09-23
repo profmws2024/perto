@@ -8,14 +8,18 @@ set_exception_handler(function(Throwable $e): void { error_log('Perto API: '.$e-
 startSession();
 $action=$_GET['action']??'list';
 if (!is_string($action)) fail('Ação inválida.');
+if (!in_array($action,['session','list','admin-list','login','logout','save','delete','password','submit','upload'],true)) fail('Recurso não encontrado.',404);
+if ((int)($_SERVER['CONTENT_LENGTH']??0) > ($action==='upload' ? 26*1024*1024 : 150000)) fail('Conteúdo muito grande.',413);
 $writes=['login','logout','save','delete','password','submit','upload'];
 if (in_array($action,$writes,true)) {
     if ($_SERVER['REQUEST_METHOD']!=='POST') fail('Método não permitido.',405);
     $origin=rtrim(getenv('APP_ORIGIN')?:'', '/');
     if (($_SERVER['HTTP_ORIGIN']??'') !== $origin) fail('Origem não permitida.',403);
     if (!hash_equals($_SESSION['csrf'],$_SERVER['HTTP_X_CSRF_TOKEN']??'')) fail('Atualize a página e tente novamente.',403);
+    if (in_array($action,['save','delete','password'],true)) requireUser();
     if ($action==='upload') {
         if (!str_starts_with($_SERVER['CONTENT_TYPE']??'', 'multipart/form-data')) fail('Formato não permitido.',415);
+        limitAction('image-upload', currentUser() ? 20 : 5);
         out(['photos'=>uploadBusinessImages($_FILES['images']??null)]);
     }
     if (!str_starts_with($_SERVER['CONTENT_TYPE']??'', 'application/json')) fail('Formato não permitido.',415);
@@ -57,12 +61,20 @@ if ($action==='login') {
 }
 if ($action==='logout') { $_SESSION=[];session_regenerate_id(true);$_SESSION['csrf']=bin2hex(random_bytes(32));out(['ok'=>true]); }
 if ($action==='submit') {
+    limitAction('business-submit',5);
     if(($d['consent']??false)!==true) fail('Confirme sua autorização para divulgar o negócio.');
     $values=businessData($d);
     if($values[9]==='') fail('Informe o WhatsApp comercial.');
+    foreach (json_decode($values[15],true) as $photo) {
+        // Visitors can only attach images uploaded in this session, not reuse
+        // another business's files or inject third-party tracking images.
+        if (($_SESSION['uploads'][$photo]??0) < time()-3600) fail('Envie novamente as fotos deste cadastro.');
+    }
     // Public submissions never choose their publication status, image, owner or placement.
     $q=db()->prepare("INSERT INTO businesses (name,summary,description,category,city,neighborhood,address,cep,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,status,consent_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',UTC_TIMESTAMP())");
-    $q->execute($values);out(['ok'=>true]);
+    $q->execute($values);
+    foreach (json_decode($values[15],true) as $photo) unset($_SESSION['uploads'][$photo]);
+    out(['ok'=>true]);
 }
 $u=requireUser();
 if ($action==='save') {
@@ -83,6 +95,7 @@ if ($action==='delete') {
     audit($u['id'],'delete',$id);$pdo->commit();out(['ok'=>true]);
 }
 if ($action==='password') {
+    limitAction('password-change:'.$u['id'],5);
     $current=textValue($d,'current',1,128);$password=textValue($d,'password',12,128);
     if (strlen($password)>72) fail('Use uma senha com até 72 bytes.');
     $q=db()->prepare('SELECT password_hash FROM users WHERE id=?');$q->execute([$u['id']]);

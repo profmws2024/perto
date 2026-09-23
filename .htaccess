@@ -1,0 +1,12 @@
+Options -Indexes
+ServerSignature Off
+ErrorDocument 403 "Acesso nao permitido."
+ErrorDocument 404 "Recurso nao encontrado."
+ErrorDocument 500 "Servico indisponivel."
+RewriteEngine On
+# Only the public directory is reachable when installed under XAMPP's htdocs.
+RewriteRule ^$ public/ [R=302,L]
+RewriteRule ^(?!public(?:/|$)) - [F,L,NC]
+<FilesMatch "^\.">
+ Require all denied
+</FilesMatch>

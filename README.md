@@ -32,6 +32,8 @@ Se `businesses` já existe, não execute novamente a migração 002: faça backu
 Se não puder alterar DocumentRoot, copie o conteúdo de `public` para public_html (ou a subpasta do domínio). Coloque `app` fora de public_html e ajuste os require de index.php e api.php para o caminho privado. Configure variáveis pelo mecanismo recomendado pelo provedor e crie o administrador via Terminal/SSH ou processo privado do suporte. Não suba ZIP, SQL ou credenciais para a pasta pública.
 
 ### Teste local
+As configurações desta instalação ficam em `app/config.local.php`, um arquivo privado ignorado pelo Git e carregado apenas em modo local. Não inclua esse arquivo em commits, ZIPs de distribuição ou na hospedagem. Variáveis de ambiente têm prioridade. Uma instalação obtida pelo Git deve configurar as variáveis abaixo; o arquivo local não acompanha o repositório.
+
 Defina APP_ENV=local e APP_ORIGIN=http://localhost:8080, além das variáveis do banco. Inicie `php -S localhost:8080 -t public`. O modo local permite HTTP; não use em produção.
 
 ## Segurança implementada
@@ -49,7 +51,7 @@ Defina APP_ENV=local e APP_ORIGIN=http://localhost:8080, além das variáveis do
 Essas medidas não substituem auditoria, atualizações, proteção antiabuso no servidor, backup e testes. Atrás de proxy, configure REMOTE_ADDR corretamente a partir apenas de proxies confiáveis. O PHP não confia indiscriminadamente em X-Forwarded-For. Adote rate limiting adicional no servidor para páginas autenticadas e troca de senha.
 
 ## Limites e publicação
-- O backend foi revisado no código, mas não executado neste ambiente por falta de PHP/MySQL. Consulte VALIDACAO.md antes de colocar em produção.
+- O backend passou por testes locais de integração e segurança em banco isolado. Consulte SEGURANCA.md e VALIDACAO.md antes de publicar: o XAMPP local ainda não está aprovado para exposição à internet.
 - O catálogo é carregado em conjunto: acervos grandes exigem paginação no servidor. URLs usam hash; SEO avançado requer renderização por estabelecimento e sitemap.
 - Complete os dados do responsável e o canal para correção/exclusão na política de privacidade. Revise autorização e direitos de fotografias e contatos.
 - Todos os comércios, endereços e descrições da demonstração são fictícios. Os botões de WhatsApp desses exemplos ficam indisponíveis; nenhum telefone foi inventado.

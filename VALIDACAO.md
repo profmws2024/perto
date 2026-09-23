@@ -1,7 +1,7 @@
 # Verificação e aceite
 - Sintaxe JavaScript e referências de assets verificadas.
 - Frontend: busca sem acentos, cidade/categoria, estados pendente/oculto, cadastro e aprovação, exclusão, escaping e navegação verificados em ambiente isolado.
-- Backend revisado no código; PHP/MySQL não estão disponíveis aqui para testes de integração. Não houve auditoria independente nem validação visual em navegador.
+- Backend revisado e testado localmente com PHP/MySQL: 51 verificações de segurança em banco isolado e 2 testes de desempenho aprovados. Consulte SEGURANCA.md para escopo, limitações e pendências. Não houve auditoria independente nem validação visual em navegador nesta revisão.
 - WebMCP validado com registro simulado, sem navegador compatível disponível.
 
 ## Testes necessários na hospedagem

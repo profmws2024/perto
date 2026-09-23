@@ -1,18 +1,34 @@
 <?php
 declare(strict_types=1);
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');
 
 // ==================================================
 // CONFIGURAÇÃO LOCAL — XAMPP
 // Substitua estes valores antes de publicar na internet.
 // ==================================================
-putenv('APP_ENV=local');
-putenv('APP_ORIGIN=http://localhost');
-
-putenv('DB_HOST=127.0.0.1');
-putenv('DB_PORT=3306');
-putenv('DB_NAME=perto');
-putenv('DB_USER=root');
-putenv('DB_PASS=');
+// Environment supplied by the server always wins. Local defaults never permit
+// remote HTTP clients; production requires explicit credentials and HTTPS.
+if (getenv('APP_ENV') === false) putenv('APP_ENV=local');
+$localEnvironment = getenv('APP_ENV') === 'local';
+if ($localEnvironment && PHP_SAPI !== 'cli') {
+    if (!in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true)) {
+        http_response_code(403);
+        exit('Acesso não permitido.');
+    }
+}
+if ($localEnvironment) {
+    $localConfig = is_file(__DIR__.'/config.local.php') ? require __DIR__.'/config.local.php' : [];
+    foreach ($localConfig as $key=>$value) {
+        if (getenv($key) === false) putenv($key.'='.$value);
+    }
+    unset($localConfig, $key, $value);
+} elseif (getenv('APP_ENV') !== 'production') {
+    http_response_code(503);
+    error_log('Perto: APP_ENV inválido.');
+    exit('Serviço indisponível.');
+}
 
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
@@ -71,6 +87,9 @@ function db(): PDO
     $port = getenv('DB_PORT') ?: '3306';
     $database = getenv('DB_NAME');
     $username = getenv('DB_USER');
+    if (!$local && strtolower($username) === 'root') {
+        throw new RuntimeException('Use uma conta de banco restrita em produção.');
+    }
 
     $dsn = sprintf(
         'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
@@ -127,6 +146,17 @@ function out(array $data): never
 // ==================================================
 function secureHeaders(): void
 {
+    if (getenv('APP_ENV') !== 'local') {
+        $origin = parse_url(getenv('APP_ORIGIN') ?: '');
+        if (!is_array($origin) || ($origin['scheme'] ?? '') !== 'https'
+            || empty($origin['host']) || isset($origin['user']) || isset($origin['pass'])
+            || isset($origin['query']) || isset($origin['fragment']) || isset($origin['path'])
+            || (PHP_SAPI !== 'cli' && ($_SERVER['HTTPS'] ?? '') !== 'on')) {
+            error_log('Perto: configure APP_ORIGIN HTTPS e o transporte seguro do servidor.');
+            fail('Serviço indisponível. Tente novamente em instantes.', 503);
+        }
+    }
+    header_remove('X-Powered-By');
     header('X-Content-Type-Options: nosniff');
     header('Referrer-Policy: strict-origin-when-cross-origin');
     header('X-Frame-Options: DENY');
@@ -178,6 +208,7 @@ function startSession(): void
 
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
+    ini_set('session.use_trans_sid', '0');
 
     session_name(
         $local ? 'perto_session' : '__Host-perto_session'
@@ -291,7 +322,7 @@ function textValue(
 ): string {
     $value = $data[$key] ?? null;
 
-    if (!is_string($value)) {
+    if (!is_string($value) || !mb_check_encoding($value, 'UTF-8') || str_contains($value, "\0")) {
         fail('Campo inválido: ' . $key);
     }
 
@@ -307,6 +338,21 @@ function textValue(
     }
 
     return $value;
+}
+
+function validHttpsUrl(string $url, array $domains = []): bool
+{
+    $parts = parse_url($url);
+    if (!filter_var($url, FILTER_VALIDATE_URL) || !is_array($parts)
+        || ($parts['scheme'] ?? '') !== 'https' || empty($parts['host'])
+        || isset($parts['user']) || isset($parts['pass'])
+        || (isset($parts['port']) && $parts['port'] !== 443)) return false;
+    if (!$domains) return true;
+    $host = strtolower($parts['host']);
+    foreach ($domains as $domain) {
+        if ($host === $domain || str_ends_with($host, '.'.$domain)) return true;
+    }
+    return false;
 }
 
 function businessData(array $data): array
@@ -362,9 +408,14 @@ function businessData(array $data): array
     }
 
     $socials = [];
+    $socialDomains = ['instagram'=>['instagram.com'], 'facebook'=>['facebook.com','fb.com'],
+                      'tiktok'=>['tiktok.com'], 'youtube'=>['youtube.com','youtu.be']];
     foreach (['instagram', 'facebook', 'tiktok', 'youtube'] as $social) {
         $socials[$social] = textValue($data, $social, 0, 500);
         if ($socials[$social] !== '') {
+            if (!validHttpsUrl($socials[$social], $socialDomains[$social])) {
+                fail('Use um link HTTPS da rede social correspondente.');
+            }
             $parts = parse_url($socials[$social]);
             if (
                 !filter_var($socials[$social], FILTER_VALIDATE_URL)
@@ -388,15 +439,15 @@ function businessData(array $data): array
     } catch (JsonException $e) {
         fail('Fotos inválidas.');
     }
-    if (!is_array($photos) || count($photos) > 5) {
+    if (!is_array($photos) || ($photos !== [] && array_keys($photos) !== range(0,count($photos)-1)) || count($photos) > 5) {
         fail('Informe no máximo cinco fotos.');
     }
     foreach ($photos as $photo) {
         if (
             !is_string($photo)
             || mb_strlen($photo, 'UTF-8') > 500
-            || (!preg_match('/^uploads\/[a-z0-9-]+\.(?:jpg|png|webp|gif)$/i', $photo)
-                && (!filter_var($photo, FILTER_VALIDATE_URL) || !str_starts_with($photo, 'https://')))
+            || (!preg_match('/^uploads\/[a-f0-9]{32}\.(?:jpg|png|webp|gif)$/D', $photo)
+                && !validHttpsUrl($photo))
         ) {
             fail('As fotos devem ser arquivos enviados ou links HTTPS válidos.');
         }
@@ -448,7 +499,7 @@ function uploadBusinessImages(mixed $files): array
         fail('Não foi possível preparar o armazenamento das imagens.', 500);
     }
 
-    $paths = [];
+    $validated = [];
     foreach ($names as $index => $name) {
         if (($errors[$index] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || (int) ($sizes[$index] ?? 0) > 5 * 1024 * 1024) {
             fail('Cada imagem deve ter até 5 MB.');
@@ -458,25 +509,56 @@ function uploadBusinessImages(mixed $files): array
             fail('Arquivo de imagem inválido.');
         }
         $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmpName);
-        if (!isset($mimeExtensions[$mime]) || @getimagesize($tmpName) === false) {
+        $dimensions = @getimagesize($tmpName);
+        if (!isset($mimeExtensions[$mime]) || $dimensions === false
+            || ($dimensions['mime'] ?? '') !== $mime
+            || $dimensions[0] < 1 || $dimensions[1] < 1
+            || $dimensions[0] > 8000 || $dimensions[1] > 8000
+            || $dimensions[0] * $dimensions[1] > 24000000
+            || filesize($tmpName) > 5 * 1024 * 1024) {
             fail('Use somente imagens JPG, PNG, WebP ou GIF.');
         }
-        $filename = bin2hex(random_bytes(16)) . '.' . $mimeExtensions[$mime];
-        if (!move_uploaded_file($tmpName, $directory . '/' . $filename)) {
-            fail('Não foi possível salvar uma das imagens.', 500);
-        }
-        $paths[] = 'uploads/' . $filename;
+        $validated[] = [$tmpName, bin2hex(random_bytes(16)).'.'.$mimeExtensions[$mime]];
     }
+
+    // Serialize quota checks and writes so simultaneous requests cannot bypass
+    // the storage ceiling. The lock file is denied by uploads/.htaccess.
+    $lock = fopen($directory.'/.upload.lock', 'c');
+    if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) fail('Envio ocupado. Tente novamente.', 429);
+    $paths = [];
+    try {
+        $total = 0;
+        foreach (new DirectoryIterator($directory) as $entry) {
+            if ($entry->isFile()) $total += $entry->getSize();
+        }
+        foreach ($validated as [$tmpName]) $total += filesize($tmpName);
+        $quota = (int)(getenv('UPLOAD_STORAGE_LIMIT_MB') ?: 512) * 1024 * 1024;
+        if ($quota <= 0 || $total > $quota) fail('Armazenamento de imagens indisponível. Contate o administrador.', 507);
+        foreach ($validated as [$tmpName, $filename]) {
+            if (!move_uploaded_file($tmpName, $directory.'/'.$filename)) {
+                throw new RuntimeException('Falha ao armazenar imagem.');
+            }
+            $paths[] = 'uploads/'.$filename;
+        }
+    } catch (Throwable $error) {
+        foreach ($paths as $path) unlink(dirname(__DIR__).'/public/'.$path);
+        throw $error;
+    } finally {
+        flock($lock, LOCK_UN);
+        fclose($lock);
+    }
+    $_SESSION['uploads'] = array_filter($_SESSION['uploads'] ?? [], fn($created) => $created >= time()-3600);
+    foreach ($paths as $path) $_SESSION['uploads'][$path] = time();
     return $paths;
 }
 
 // ==================================================
 // LIMITE DE ENVIO DE CADASTROS
 // ==================================================
-function limitSubmission(): void
+function limitAction(string $scope, int $maximum): void
 {
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-    $key = hash('sha256', 'business-submit:' . $ip);
+    $key = hash('sha256', $scope . ':' . $ip);
 
     $pdo = db();
     $pdo->beginTransaction();
@@ -517,7 +599,7 @@ function limitSubmission(): void
             );
 
             $query->execute([$key]);
-        } elseif ((int) $bucket['attempts'] >= 5) {
+        } elseif ((int) $bucket['attempts'] >= $maximum) {
             $pdo->rollBack();
 
             header('Retry-After: 900');

@@ -1,0 +1,6 @@
+/app/config.local.php
+.env
+.env.*
+!.env.example
+*.log
+*.sql.bak
