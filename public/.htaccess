@@ -5,6 +5,9 @@ ErrorDocument 404 "Recurso nao encontrado."
 ErrorDocument 500 "Servico indisponivel."
 LimitRequestBody 27262976
 DirectoryIndex index.php
+RewriteEngine On
+# Only application routes fall back to PHP; private files and missing assets do not.
+RewriteRule ^(?:admin(?:/(?:comercios|pendentes|novo|categorias|conta|editar/[0-9]+))?|explorar|anunciar|sobre|privacidade|comercio/[0-9]+)/?$ index.php [END]
 <IfModule mod_deflate.c>
  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json image/svg+xml
 </IfModule>

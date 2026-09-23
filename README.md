@@ -52,10 +52,13 @@ Essas medidas não substituem auditoria, atualizações, proteção antiabuso no
 
 ## Limites e publicação
 - O backend passou por testes locais de integração e segurança em banco isolado. Consulte SEGURANCA.md e VALIDACAO.md antes de publicar: o XAMPP local ainda não está aprovado para exposição à internet.
-- O catálogo é carregado em conjunto: acervos grandes exigem paginação no servidor. URLs usam hash; SEO avançado requer renderização por estabelecimento e sitemap.
+- O catálogo é carregado em conjunto: acervos grandes exigem paginação no servidor. As URLs usam caminhos como /explorar e /admin; SEO avançado requer renderização por estabelecimento e sitemap.
 - Complete os dados do responsável e o canal para correção/exclusão na política de privacidade. Revise autorização e direitos de fotografias e contatos.
 - Todos os comércios, endereços e descrições da demonstração são fictícios. Os botões de WhatsApp desses exemplos ficam indisponíveis; nenhum telefone foi inventado.
 - O formulário público não envia e-mails de confirmação. O administrador acompanha a fila no painel.
 
 ## Fotografias ilustrativas
 Créditos e links em public/credits.json: Skyler Smith, Christopher Bill, František Čaník e Brandon Atchison, via Unsplash.
+
+### Endereços de navegação
+No XAMPP, acesse `http://localhost/perto/public/admin`. Com o domínio apontando para `public`, use `https://seudominio.com.br/admin`. A navegação usa History API, e o Apache precisa de mod_rewrite e das regras de `public/.htaccess` para abrir ou atualizar links diretamente. Hospedagens Nginx precisam de regras equivalentes para as rotas da aplicação. Links antigos com `#/` são convertidos automaticamente ao abrir.

@@ -6,7 +6,7 @@ const path = require('node:path');
 
 // Load the actual application functions without starting network requests.
 const source = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
-const functions = source.slice(0, source.indexOf("window.addEventListener('hashchange'"));
+const functions = source.slice(0, source.indexOf("window.addEventListener('popstate'"));
 function runtime(overrides = {}) {
   const context = vm.createContext({
     document: { body: { dataset: { mode: 'production' } } },
