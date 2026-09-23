@@ -333,7 +333,7 @@ function businessData(array $data): array
     }
     $cepDigits = preg_replace('/\D/', '', $cep);
     $cep = substr($cepDigits, 0, 5) . '-' . substr($cepDigits, 5);
-    $hours = textValue($data, 'hours', 1, 1000);
+    $hours = textValue($data, 'hours', 0, 1000);
 
     $whatsapp = textValue($data, 'whatsapp', 0, 20);
 

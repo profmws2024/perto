@@ -59,7 +59,7 @@ if ($action==='logout') { $_SESSION=[];session_regenerate_id(true);$_SESSION['cs
 if ($action==='submit') {
     if(($d['consent']??false)!==true) fail('Confirme sua autorização para divulgar o negócio.');
     $values=businessData($d);
-    if($values[8]==='') fail('Informe o WhatsApp comercial.');
+    if($values[9]==='') fail('Informe o WhatsApp comercial.');
     // Public submissions never choose their publication status, image, owner or placement.
     $q=db()->prepare("INSERT INTO businesses (name,summary,description,category,city,neighborhood,address,cep,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,status,consent_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',UTC_TIMESTAMP())");
     $q->execute($values);out(['ok'=>true]);
