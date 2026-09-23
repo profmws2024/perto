@@ -16,6 +16,7 @@ const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'perto-security-'));
 fs.mkdirSync(path.join(temporary,'app'));
 fs.mkdirSync(path.join(temporary,'public'));
 fs.copyFileSync(path.join(root,'app/bootstrap.php'),path.join(temporary,'app/bootstrap.php'));
+fs.copyFileSync(path.join(root,'app/categories.json'),path.join(temporary,'app/categories.json'));
 if(fs.existsSync(path.join(root,'app/config.local.php')))fs.copyFileSync(path.join(root,'app/config.local.php'),path.join(temporary,'app/config.local.php'));
 for(const name of ['api.php','index.php'])fs.copyFileSync(path.join(root,'public',name),path.join(temporary,'public',name));
 function sql(code) {

@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Alimentação",
+    "icon": "food",
+    "examples": "Restaurantes, lanchonetes, padarias, cafeterias, marmitas e delivery"
+  },
+  {
+    "name": "Mercados e conveniências",
+    "icon": "store",
+    "examples": "Supermercados, mercearias, hortifrutis, açougues e lojas de conveniência"
+  },
+  {
+    "name": "Beleza e bem-estar",
+    "icon": "beauty",
+    "examples": "Salões, barbearias, manicures, esteticistas e massoterapeutas"
+  },
+  {
+    "name": "Saúde",
+    "icon": "health",
+    "examples": "Médicos, dentistas, psicólogos, fisioterapeutas, nutricionistas e clínicas"
+  },
+  {
+    "name": "Casa e construção",
+    "icon": "home",
+    "examples": "Materiais de construção, ferragens, móveis, decoração e utilidades domésticas"
+  },
+  {
+    "name": "Moda e acessórios",
+    "icon": "fashion",
+    "examples": "Roupas, calçados, bolsas, joias e bijuterias"
+  },
+  {
+    "name": "Tecnologia",
+    "icon": "tech",
+    "examples": "Informática, celulares, assistência técnica e desenvolvimento de software"
+  },
+  {
+    "name": "Automotivo",
+    "icon": "car",
+    "examples": "Oficinas, autopeças, borracharias, lava-rápidos, motos e concessionárias"
+  },
+  {
+    "name": "Pets e veterinária",
+    "icon": "health",
+    "examples": "Veterinários, pet shops, banho e tosa, adestradores e cuidadores de animais"
+  },
+  {
+    "name": "Educação e aulas particulares",
+    "icon": "grid",
+    "examples": "Escolas, creches, reforço escolar, idiomas, música e professores particulares"
+  },
+  {
+    "name": "Esportes e atividades físicas",
+    "icon": "health",
+    "examples": "Academias, personal trainers, pilates, dança, lutas e artigos esportivos"
+  },
+  {
+    "name": "Serviços",
+    "icon": "service",
+    "examples": "Profissionais liberais, consultoria, reparos, limpeza, transporte, eventos e outros serviços"
+  }
+]

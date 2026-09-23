@@ -33,16 +33,8 @@ if ($localEnvironment) {
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
-const CATEGORIES = [
-    'Alimentação',
-    'Beleza e bem-estar',
-    'Casa e construção',
-    'Tecnologia',
-    'Moda e acessórios',
-    'Saúde',
-    'Automotivo',
-    'Serviços',
-];
+define('CATEGORY_CATALOG', json_decode(file_get_contents(__DIR__.'/categories.json'), true, 512, JSON_THROW_ON_ERROR));
+define('CATEGORIES', array_column(CATEGORY_CATALOG, 'name'));
 
 const CITIES = [
     'Suzano',

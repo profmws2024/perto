@@ -28,7 +28,7 @@ if (in_array($action,$writes,true)) {
     try {$d=json_decode($raw,true,32,JSON_THROW_ON_ERROR);} catch(JsonException $e) {fail('Dados inválidos.');}
     if (!is_array($d)) fail('Dados inválidos.');
 } elseif ($_SERVER['REQUEST_METHOD']!=='GET') fail('Método não permitido.',405);
-if ($action==='session') out(['user'=>currentUser(),'csrf'=>$_SESSION['csrf']]);
+if ($action==='session') out(['user'=>currentUser(),'csrf'=>$_SESSION['csrf'],'categories'=>CATEGORY_CATALOG]);
 if ($action==='list' || $action==='admin-list') {
     if ($action==='admin-list') requireUser();
     $sql='SELECT id,name,summary,description,category,city,neighborhood,address,cep,hours,whatsapp,website,instagram,facebook,tiktok,youtube,photos,image,status,featured,created_at FROM businesses';
